@@ -1,17 +1,16 @@
 import os
 import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Depends, Request
+from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from jwt import PyJWTError
 
 load_dotenv()
-
 SECRET_KEY = os.getenv("SECRET_KEY")
 security = HTTPBearer()
 
-# Función para crear un JWT
+# Crear token JWT
 def create_jwt_token(
     firstname: str,
     lastname: str,
@@ -37,72 +36,51 @@ def create_jwt_token(
     )
     return token
 
+# 🔐 NUEVO: Función reutilizable para decodificar JWT
+def decode_jwt_token(token: str) -> dict:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        exp = payload.get("exp")
+        if exp and datetime.utcfromtimestamp(exp) < datetime.utcnow():
+            raise HTTPException(status_code=401, detail="Expired token")
+        return payload
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token or expired token")
 
-# Función de validación general (usuarios autenticados)
+# Validación general para usuarios autenticados
 def validate_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     token = credentials.credentials
+    payload = decode_jwt_token(token)
 
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    if payload.get("email") is None:
+        raise HTTPException(status_code=401, detail="Token Invalid")
+    if not payload.get("active"):
+        raise HTTPException(status_code=401, detail="Inactive user")
 
-        email = payload.get("email")
-        firstname = payload.get("firstname")
-        lastname = payload.get("lastname")
-        active = payload.get("active")
-        admin = payload.get("admin", False)
-        exp = payload.get("exp")
-        user_id = payload.get("id")
+    return {
+        "id": payload["id"],
+        "email": payload["email"],
+        "firstname": payload["firstname"],
+        "lastname": payload["lastname"],
+        "active": payload["active"],
+        "role": "admin" if payload.get("admin") else "user"
+    }
 
-        if email is None:
-            raise HTTPException(status_code=401, detail="Token Invalid")
-        if datetime.utcfromtimestamp(exp) < datetime.utcnow():
-            raise HTTPException(status_code=401, detail="Expired token")
-        if not active:
-            raise HTTPException(status_code=401, detail="Inactive user")
-
-        return {
-            "id": user_id,
-            "email": email,
-            "firstname": firstname,
-            "lastname": lastname,
-            "active": active,
-            "role": "admin" if admin else "user"
-        }
-
-    except PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token or expired token")
-
-
-# Función de validación para administradores
+# Validación para administradores
 def validate_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
     token = credentials.credentials
+    payload = decode_jwt_token(token)
 
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    if payload.get("email") is None:
+        raise HTTPException(status_code=401, detail="Token Invalid")
+    if not payload.get("active") or not payload.get("admin"):
+        raise HTTPException(status_code=401, detail="Inactive user or not admin")
 
-        email = payload.get("email")
-        firstname = payload.get("firstname")
-        lastname = payload.get("lastname")
-        active = payload.get("active")
-        admin = payload.get("admin", False)
-        exp = payload.get("exp")
-        user_id = payload.get("id")
-
-        if email is None:
-            raise HTTPException(status_code=401, detail="Token Invalid")
-        if datetime.utcfromtimestamp(exp) < datetime.utcnow():
-            raise HTTPException(status_code=401, detail="Expired token")
-        if not active or not admin:
-            raise HTTPException(status_code=401, detail="Inactive user or not admin")
-
-        return {
-            "id": user_id,
-            "email": email,
-            "firstname": firstname,
-            "lastname": lastname,
-            "active": active,
-            "role": "admin"
-        }
-
-    except PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token or expired token")
+    return {
+        "id": payload["id"],
+        "email": payload["email"],
+        "firstname": payload["firstname"],
+        "lastname": payload["lastname"],
+        "active": payload["active"],
+        "role": "admin"
+    }

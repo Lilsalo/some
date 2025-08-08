@@ -24,3 +24,10 @@ class ArtistUpdate(BaseModel):
     name: Optional[str] = None
     genre: Optional[str] = None
     country: Optional[str] = None
+
+class ArtistResponse(BaseModel):
+    id: str
+    name: str
+    genre: str
+    country: str
+    albums: List[str]

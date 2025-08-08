@@ -3,15 +3,14 @@ from typing import List
 from bson import ObjectId
 
 from models.artist import Artist, ArtistUpdate, ArtistResponse
-from models.genre import GenreListAssignment 
+from models.genre import GenreListAssignment
 
+from controllers.album import get_album_statistics as controller_get_album_statistics
 from controllers.artist import (
     create_artist as controller_create_artist,
     update_artist as controller_patch_artist,
     list_artists as controller_get_artists,
-    list_albums_by_artist as controller_list_albums_by_artist,
-    get_album_statistics as controller_get_album_statistics,
-    
+    list_albums_by_artist as controller_list_albums_by_artist
 )
 
 from utils.auth_dependency import validate_user
@@ -19,19 +18,16 @@ from utils.mongodb import get_collection
 
 router = APIRouter(prefix="/artists", tags=["Artists"])
 
-
 # Crear artista (requiere autenticación)
 @router.post("/", summary="Create new artist")
 @validate_user
 async def create_artist(artist: Artist):
     return await controller_create_artist(artist)
 
-
 # Obtener todos los artistas (público)
 @router.get("/", summary="List all artists", response_model=List[ArtistResponse])
 async def get_artists():
     return await controller_get_artists()
-
 
 # Actualizar artista por ID (requiere autenticación)
 @router.patch("/{artist_id}", summary="Update artist")
@@ -39,12 +35,10 @@ async def get_artists():
 async def update_artist(artist_id: str, artist: ArtistUpdate):
     return await controller_patch_artist(artist_id, artist)
 
-
 # Obtener álbumes de un artista por ID (público)
 @router.get("/{artist_id}/albums", summary="Obtener álbumes de un artista por su ID")
 async def get_albums_by_artist(artist_id: str):
     return await controller_list_albums_by_artist(artist_id)
-
 
 # Obtener artista con más álbumes (público)
 @router.get("/statistics/top", summary="Obtener artista con más álbumes")
@@ -64,14 +58,12 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment):
     if not artist_coll.find_one({"_id": ObjectId(artist_id)}):
         raise HTTPException(status_code=404, detail="Artist not found")
 
-    # Validar cada género
     for gid in payload.genre_ids:
         if not ObjectId.is_valid(gid):
             raise HTTPException(status_code=400, detail=f"Invalid genre ID format: {gid}")
         if not genre_coll.find_one({"_id": ObjectId(gid)}):
             raise HTTPException(status_code=404, detail=f"Genre with ID {gid} not found")
 
-    # Asignar los géneros al artista
     artist_coll.update_one(
         {"_id": ObjectId(artist_id)},
         {"$set": {"genre_ids": payload.genre_ids}}
@@ -82,7 +74,6 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment):
         "artist_id": artist_id,
         "genre_ids": payload.genre_ids
     }
-
 
 # Eliminar artista por ID (requiere autenticación)
 @router.delete("/{artist_id}", summary="Delete artist by ID")

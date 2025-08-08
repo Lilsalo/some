@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter
 from models.genre import Genre, UpdateGenre
-from controllers import genre_controller
+import controllers.genre as genre_controller  
 from utils.auth_dependency import validate_user
 
 router = APIRouter(prefix="/genres", tags=["Genres"])

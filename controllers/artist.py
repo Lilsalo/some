@@ -75,6 +75,7 @@ async def list_artists():
     except Exception:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error retrieving artists")
+
 # Actualizar artista
 async def update_artist(artist_id: str, artist: ArtistUpdate):
     try:
@@ -148,7 +149,6 @@ async def list_albums_by_artist(artist_id: str):
     except Exception:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error retrieving albums")
-
 
 # Eliminar artista con validación de álbumes asociados
 async def delete_artist(artist_id: str):
