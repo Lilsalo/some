@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from models.album import Album, AlbumUpdate
 from utils.auth_dependency import validate_user
 from controllers.album import (
@@ -16,28 +16,28 @@ router = APIRouter(prefix="/albums", tags=["Albums"])
 # Crear álbum (requiere autenticación)
 @router.post("/", summary="Create new album")
 @validate_user
-async def create_album_route(album: Album):
-    return await create_album(album)
+async def create_album_route(album: Album, request: Request):
+    return create_album(album, request)
 
 
 # Obtener todos los álbumes (público)
 @router.get("/", summary="List all albums")
 async def list_albums_route():
-    return await list_albums()
+    return list_albums()
 
 
 # Actualizar álbum por ID (requiere autenticación)
 @router.patch("/{album_id}", summary="Update album")
 @validate_user
-async def patch_album_route(album_id: str, album: AlbumUpdate):
-    return await patch_album(album_id, album)
+async def patch_album_route(album_id: str, album: AlbumUpdate, request: Request):
+    return patch_album(album_id, album, request)
 
 
 # Eliminar álbum por ID (requiere autenticación)
 @router.delete("/{album_id}", summary="Delete album")
 @validate_user
-async def delete_album_route(album_id: str):
-    return await delete_album(album_id)
+async def delete_album_route(album_id: str, request: Request):
+    return delete_album(album_id, request)
 
 
 # Obtener álbum con más canciones (público)

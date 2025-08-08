@@ -1,25 +1,20 @@
-
-
-from bson import ObjectId
-
-def artist_with_genres_pipeline(artist_id: str):
+def artist_with_genres_pipeline():
     return [
-        {"$match": {"_id": ObjectId(artist_id)}},
         {
             "$lookup": {
                 "from": "genre",
-                "localField": "genre_ids",
+                "localField": "genre",
                 "foreignField": "_id",
                 "as": "genres"
             }
         },
         {
             "$project": {
-                "_id": 1,
                 "name": 1,
                 "country": 1,
                 "albums": 1,
-                "genres.name": 1
+                "genres.name": 1,
+                "genre": 1  # opcional, si quieres conservar los ObjectId
             }
         }
     ]

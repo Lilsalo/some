@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
 
 # Importar routers
 from routes.artist_routes import router as artist_router
@@ -36,3 +37,29 @@ app.include_router(playlist_router)
 @app.get("/")
 async def root():
     return {"message": "Bienvenido a la API de música"}
+
+# Personalizar el esquema OpenAPI para Swagger (mostrar "Authorize")
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT"
+        }
+    }
+    for path in openapi_schema["paths"]:
+        for method in openapi_schema["paths"][path]:
+            if method in ["get", "post", "put", "patch", "delete"]:
+                openapi_schema["paths"][path][method]["security"] = [{"BearerAuth": []}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi

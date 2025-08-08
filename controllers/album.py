@@ -2,7 +2,7 @@ from fastapi.encoders import jsonable_encoder
 from models.album import Album, AlbumUpdate
 from utils.mongodb import get_collection
 from bson import ObjectId
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from pipelines.album_pipeline import (
     artist_with_most_albums_pipeline,
     artists_with_least_albums_pipeline,
@@ -11,8 +11,11 @@ from pipelines.album_pipeline import (
 )
 
 # POST /albums - Crear un nuevo álbum
-def create_album(album: Album):
+def create_album(album: Album, request: Request): 
     try:
+        # Opcional: obtener el email del usuario autenticado
+        user_email = request.state.user_email
+
         album_coll = get_collection("album")
         artist_coll = get_collection("artist")
         genre_coll = get_collection("genre")

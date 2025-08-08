@@ -1,8 +1,7 @@
-from models.artist import Artist, ArtistUpdate
+from models.artist import ArtistCreate, ArtistUpdate
 from utils.mongodb import get_collection
 from bson import ObjectId
-from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
+from fastapi import HTTPException, Request
 import traceback
 from pipelines.artist_pipeline import artist_with_genres_pipeline
 
@@ -15,35 +14,38 @@ def convert_object_ids(doc: dict) -> dict:
         elif isinstance(v, ObjectId):
             cleaned[k] = str(v)
         elif isinstance(v, list):
-            cleaned[k] = [convert_object_ids(i) if isinstance(i, dict) else str(i) if isinstance(i, ObjectId) else i for i in v]
+            cleaned[k] = [
+                convert_object_ids(i) if isinstance(i, dict)
+                else str(i) if isinstance(i, ObjectId)
+                else i for i in v
+            ]
         elif isinstance(v, dict):
             cleaned[k] = convert_object_ids(v)
         else:
             cleaned[k] = v
     return cleaned
 
+
 # Crear artista
-async def create_artist(artist: Artist):
+async def create_artist(artist: ArtistCreate, request: Request):
     try:
+        user_email = request.state.user["email"]
         artist_coll = get_collection("artist")
         genre_coll = get_collection("genre")
 
-        # Validar que todos los géneros existan
-        for genre_id in artist.genre_ids:
-            if not ObjectId.is_valid(genre_id):
-                raise HTTPException(status_code=400, detail=f"ID de género inválido: {genre_id}")
-            if not genre_coll.find_one({"_id": ObjectId(genre_id)}):
-                raise HTTPException(status_code=404, detail=f"Género con ID '{genre_id}' no encontrado")
+        genre_ids = []
+        for genre_name in artist.genre:
+            genre_doc = genre_coll.find_one({"name": genre_name})
+            if not genre_doc:
+                raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+            genre_ids.append(genre_doc["_id"])
 
-        # Validar que no exista un artista con el mismo nombre
         if artist_coll.find_one({"name": artist.name}):
             raise HTTPException(status_code=400, detail="El artista ya existe")
 
-        # Convertir el artista a diccionario y agregar campo albums vacío
         artist_data = artist.dict()
-        artist_data["albums"] = []
+        artist_data["genre"] = genre_ids
 
-        # Insertar en la base de datos
         result = artist_coll.insert_one(artist_data)
 
         return {
@@ -55,20 +57,22 @@ async def create_artist(artist: Artist):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error al registrar el artista")
 
-# Obtener artistas con géneros por lookup
+
+# Obtener artistas con géneros
 async def list_artists():
     try:
         artist_coll = get_collection("artist")
         pipeline = artist_with_genres_pipeline()
         results = list(artist_coll.aggregate(pipeline))
 
-        # Convertir ObjectId a string
         for artist in results:
-            artist["_id"] = str(artist["_id"])
+            artist["id"] = str(artist.pop("_id"))
             artist["albums"] = [str(aid) for aid in artist.get("albums", [])]
+            artist["genre"] = artist.get("genres", [])  # Ya es lista de strings desde pipeline
+            if isinstance(artist["genre"], list) and len(artist["genre"]) > 0 and isinstance(artist["genre"][0], dict):
+                artist["genre"] = [g.get("name", "") for g in artist["genre"]]
 
-            for genre in artist.get("genres", []):
-                genre["_id"] = str(genre["_id"])
+            artist.pop("genres", None)
 
         return results
 
@@ -76,9 +80,11 @@ async def list_artists():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error retrieving artists")
 
+
 # Actualizar artista
-async def update_artist(artist_id: str, artist: ArtistUpdate):
+async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
     try:
+        user_email = request.state.user["email"]
         artist_coll = get_collection("artist")
         genre_coll = get_collection("genre")
 
@@ -91,13 +97,14 @@ async def update_artist(artist_id: str, artist: ArtistUpdate):
 
         update_data = artist.dict(exclude_unset=True)
 
-        if "genre_id" in update_data:
-            genre_id = update_data["genre_id"]
-            if not ObjectId.is_valid(genre_id):
-                raise HTTPException(status_code=400, detail="Invalid genre ID format")
-            genre_exists = genre_coll.find_one({"_id": ObjectId(genre_id)})
-            if not genre_exists:
-                raise HTTPException(status_code=404, detail=f"Genre with ID '{genre_id}' not found")
+        if "genre" in update_data:
+            new_genre_ids = []
+            for genre_name in update_data["genre"]:
+                genre_doc = genre_coll.find_one({"name": genre_name})
+                if not genre_doc:
+                    raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+                new_genre_ids.append(genre_doc["_id"])
+            update_data["genre"] = new_genre_ids
 
         artist_coll.update_one({"_id": ObjectId(artist_id)}, {"$set": update_data})
 
@@ -112,11 +119,12 @@ async def update_artist(artist_id: str, artist: ArtistUpdate):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Error updating the artist")
 
+
 # Listar álbumes por artista
 async def list_albums_by_artist(artist_id: str):
     try:
-        album_coll = get_collection("album")
         artist_coll = get_collection("artist")
+        album_coll = get_collection("album")
         genre_coll = get_collection("genre")
 
         if not ObjectId.is_valid(artist_id):
@@ -128,47 +136,50 @@ async def list_albums_by_artist(artist_id: str):
 
         artist_clean = convert_object_ids(artist)
 
-        genre = genre_coll.find_one({"_id": ObjectId(artist["genre_id"])}) if "genre_id" in artist else None
-        artist_clean["genre"] = genre["name"] if genre else "Unknown"
-        artist_clean.pop("genre_id", None)
+        genre_names = []
+        for genre_id in artist.get("genre", []):
+            if ObjectId.is_valid(genre_id):
+                genre = genre_coll.find_one({"_id": ObjectId(genre_id)})
+                if genre:
+                    genre_names.append(genre["name"])
+
+        artist_clean["genre"] = genre_names
 
         albums = list(album_coll.find({"artist": artist_id}))
-        cleaned_albums = []
-        for alb in albums:
-            alb_clean = convert_object_ids(alb)
-            alb_clean.pop("artist", None)
-            cleaned_albums.append(alb_clean)
+        cleaned_albums = [convert_object_ids(alb) for alb in albums]
 
         return {
             "artist": artist_clean,
             "albums": cleaned_albums
         }
 
-    except HTTPException:
-        raise
     except Exception:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Error retrieving albums")
+        raise HTTPException(status_code=500, detail="Error retrieving albums by artist")
 
-# Eliminar artista con validación de álbumes asociados
-async def delete_artist(artist_id: str):
-    artist_coll = get_collection("artist")
-    album_coll = get_collection("album")
 
-    if not ObjectId.is_valid(artist_id):
-        raise HTTPException(status_code=400, detail="Invalid artist ID")
+# Eliminar artista
+async def delete_artist(artist_id: str, request: Request):
+    try:
+        user_email = request.state.user["email"]
+        artist_coll = get_collection("artist")
+        album_coll = get_collection("album")
 
-    artist = artist_coll.find_one({"_id": ObjectId(artist_id)})
-    if not artist:
-        raise HTTPException(status_code=404, detail="Artist not found")
+        if not ObjectId.is_valid(artist_id):
+            raise HTTPException(status_code=400, detail="Invalid artist ID")
 
-    album_count = album_coll.count_documents({"artist": artist_id})
-    if album_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot delete artist with associated albums"
-        )
+        artist = artist_coll.find_one({"_id": ObjectId(artist_id)})
+        if not artist:
+            raise HTTPException(status_code=404, detail="Artist not found")
 
-    artist_coll.delete_one({"_id": ObjectId(artist_id)})
+        album_count = album_coll.count_documents({"artist": artist_id})
+        if album_count > 0:
+            raise HTTPException(status_code=400, detail="Cannot delete artist with associated albums")
 
-    return {"msg": f"Artist '{artist['name']}' deleted successfully"}
+        artist_coll.delete_one({"_id": ObjectId(artist_id)})
+
+        return {"msg": f"Artist '{artist['name']}' deleted successfully"}
+
+    except Exception:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Error deleting artist")

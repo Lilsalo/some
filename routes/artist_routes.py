@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from typing import List
 from bson import ObjectId
 
-from models.artist import Artist, ArtistUpdate, ArtistResponse
+from models.artist import ArtistCreate, ArtistUpdate, ArtistOut
 from models.genre import GenreListAssignment
 
 from controllers.album import get_album_statistics as controller_get_album_statistics
@@ -10,7 +10,8 @@ from controllers.artist import (
     create_artist as controller_create_artist,
     update_artist as controller_patch_artist,
     list_artists as controller_get_artists,
-    list_albums_by_artist as controller_list_albums_by_artist
+    list_albums_by_artist as controller_list_albums_by_artist,
+    delete_artist as controller_delete_artist
 )
 
 from utils.auth_dependency import validate_user
@@ -18,37 +19,43 @@ from utils.mongodb import get_collection
 
 router = APIRouter(prefix="/artists", tags=["Artists"])
 
+
 # Crear artista (requiere autenticación)
 @router.post("/", summary="Create new artist")
 @validate_user
-async def create_artist(artist: Artist):
-    return await controller_create_artist(artist)
+async def create_artist(artist: ArtistCreate, request: Request):
+    return await controller_create_artist(artist, request)
+
 
 # Obtener todos los artistas (público)
-@router.get("/", summary="List all artists", response_model=List[ArtistResponse])
+@router.get("/", summary="List all artists", response_model=List[ArtistOut])
 async def get_artists():
     return await controller_get_artists()
+
 
 # Actualizar artista por ID (requiere autenticación)
 @router.patch("/{artist_id}", summary="Update artist")
 @validate_user
-async def update_artist(artist_id: str, artist: ArtistUpdate):
-    return await controller_patch_artist(artist_id, artist)
+async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
+    return await controller_patch_artist(artist_id, artist, request)
+
 
 # Obtener álbumes de un artista por ID (público)
 @router.get("/{artist_id}/albums", summary="Obtener álbumes de un artista por su ID")
 async def get_albums_by_artist(artist_id: str):
     return await controller_list_albums_by_artist(artist_id)
 
+
 # Obtener artista con más álbumes (público)
 @router.get("/statistics/top", summary="Obtener artista con más álbumes")
 async def get_top_artist_by_albums():
     return await controller_get_album_statistics()
 
+
 # Asignar múltiples géneros a un artista (requiere autenticación)
 @router.patch("/{artist_id}/assign-genres", summary="Assign multiple genres to artist")
 @validate_user
-async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment):
+async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment, request: Request):
     artist_coll = get_collection("artist")
     genre_coll = get_collection("genre")
 
@@ -66,7 +73,7 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment):
 
     artist_coll.update_one(
         {"_id": ObjectId(artist_id)},
-        {"$set": {"genre_ids": payload.genre_ids}}
+        {"$set": {"genre": payload.genre_ids}}
     )
 
     return {
@@ -75,27 +82,9 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment):
         "genre_ids": payload.genre_ids
     }
 
+
 # Eliminar artista por ID (requiere autenticación)
 @router.delete("/{artist_id}", summary="Delete artist by ID")
 @validate_user
-async def delete_artist(artist_id: str):
-    artist_coll = get_collection("artist")
-    album_coll = get_collection("album")
-
-    if not ObjectId.is_valid(artist_id):
-        raise HTTPException(status_code=400, detail="Invalid artist ID")
-
-    artist = artist_coll.find_one({"_id": ObjectId(artist_id)})
-    if not artist:
-        raise HTTPException(status_code=404, detail="Artist not found")
-
-    album_count = album_coll.count_documents({"artist_id": artist_id})
-    if album_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot delete artist with associated albums"
-        )
-
-    artist_coll.delete_one({"_id": ObjectId(artist_id)})
-
-    return {"msg": f"Artist '{artist['name']}' deleted successfully"}
+async def delete_artist(artist_id: str, request: Request):
+    return await controller_delete_artist(artist_id, request)

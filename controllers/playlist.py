@@ -1,11 +1,14 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from models.playlist import Playlist
 from utils.mongodb import get_collection
 from bson import ObjectId
 
+
 # Crear nueva playlist
-async def create_playlist(playlist: Playlist, user_email: str):
+async def create_playlist(playlist: Playlist, request: Request):
     try:
+        user_email = request.state.user["email"]
+
         users = get_collection("users")
         songs_coll = get_collection("songs")
         playlist_coll = get_collection("playlist")
@@ -32,15 +35,24 @@ async def create_playlist(playlist: Playlist, user_email: str):
 
 
 # Obtener playlists del usuario
-async def get_playlists_by_user(user_email: str):
-    coll = get_collection("playlist")
-    playlists = list(coll.find({"user": {"$exists": True}}))
-    user_playlists = [p for p in playlists if p.get("user") == user_email or str(p.get("user")) == user_email]
-    return [{"id": str(p["_id"]), "name": p.get("name"), "songs": p.get("songs", [])} for p in user_playlists]
+async def get_playlists_by_user(request: Request):
+    user_email = request.state.user["email"]
+
+    users = get_collection("users")
+    playlist_coll = get_collection("playlist")
+
+    user = users.find_one({"email": user_email})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    playlists = list(playlist_coll.find({"user": str(user["_id"])}))
+    return [{"id": str(p["_id"]), "name": p.get("name"), "songs": p.get("songs", [])} for p in playlists]
 
 
 # Eliminar playlist por ID
-async def delete_playlist(playlist_id: str, user_email: str):
+async def delete_playlist(playlist_id: str, request: Request):
+    user_email = request.state.user["email"]
+
     coll = get_collection("playlist")
     result = coll.delete_one({"_id": ObjectId(playlist_id), "user": user_email})
     if result.deleted_count == 0:
@@ -49,7 +61,9 @@ async def delete_playlist(playlist_id: str, user_email: str):
 
 
 # Agregar canciones a una playlist
-async def add_songs_to_playlist(playlist_id: str, song_ids: list[str], user_email: str):
+async def add_songs_to_playlist(playlist_id: str, song_ids: list[str], request: Request):
+    user_email = request.state.user["email"]
+
     coll = get_collection("playlist")
     songs_coll = get_collection("songs")
 
@@ -68,7 +82,9 @@ async def add_songs_to_playlist(playlist_id: str, song_ids: list[str], user_emai
 
 
 # Quitar canciones de una playlist
-async def remove_songs_from_playlist(playlist_id: str, song_ids: list[str], user_email: str):
+async def remove_songs_from_playlist(playlist_id: str, song_ids: list[str], request: Request):
+    user_email = request.state.user["email"]
+
     coll = get_collection("playlist")
     result = coll.update_one(
         {"_id": ObjectId(playlist_id), "user": user_email},

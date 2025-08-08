@@ -1,13 +1,13 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from bson import ObjectId
 from utils.mongodb import get_collection
-from models.genre import Genre, UpdateGenre, GenreResponse
+from models.genre import Genre, UpdateGenre
 
 # Colección MongoDB
 collection = get_collection("genre")
 
 
-#  Obtener todos los géneros
+# Obtener todos los géneros (público)
 async def get_all_genres():
     try:
         genres = []
@@ -21,7 +21,7 @@ async def get_all_genres():
         raise HTTPException(status_code=500, detail=f"Error retrieving genres: {e}")
 
 
-#  Obtener un género por ID
+# Obtener un género por ID (público)
 async def get_genre_by_id(genre_id: str):
     if not ObjectId.is_valid(genre_id):
         raise HTTPException(status_code=400, detail="Invalid genre ID")
@@ -33,8 +33,8 @@ async def get_genre_by_id(genre_id: str):
     return {"id": str(genre["_id"]), "name": genre["name"]}
 
 
-#  Crear un nuevo género
-async def create_genre(data: Genre):
+# Crear un nuevo género (requiere autenticación)
+async def create_genre(data: Genre, request: Request):
     if collection.find_one({"name": data.name}):
         raise HTTPException(status_code=400, detail="Genre already exists")
 
@@ -45,8 +45,8 @@ async def create_genre(data: Genre):
     }
 
 
-#  Actualizar un género por ID
-async def update_genre(genre_id: str, data: UpdateGenre):
+# Actualizar un género por ID (requiere autenticación)
+async def update_genre(genre_id: str, data: UpdateGenre, request: Request):
     if not ObjectId.is_valid(genre_id):
         raise HTTPException(status_code=400, detail="Invalid genre ID")
 
@@ -58,8 +58,9 @@ async def update_genre(genre_id: str, data: UpdateGenre):
 
     return {"msg": "Genre updated successfully"}
 
-#  Eliminar un género por ID
-async def delete_genre(genre_id: str):
+
+# Eliminar un género por ID (requiere autenticación)
+async def delete_genre(genre_id: str, request: Request):
     if not ObjectId.is_valid(genre_id):
         raise HTTPException(status_code=400, detail="Invalid genre ID")
 
