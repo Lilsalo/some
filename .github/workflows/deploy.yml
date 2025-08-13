@@ -46,7 +46,7 @@ jobs:
         - name: Run tests
           env:
             MONGODB_URI: ${{ secrets.MONGODB_URI }}
-            MONGO_DB_NAME: ${{ secrets.MONGO_DB_NAME }}
+            DB_NAME: ${{ secrets.DB_NAME }}
             SECRET_KEY: ${{ secrets.SECRET_KEY }}
             FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
             FIREBASE_CREDENTIALS_BASE64: ${{ secrets.FIREBASE_CREDENTIALS_BASE64 }}
