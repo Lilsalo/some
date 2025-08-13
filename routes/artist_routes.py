@@ -11,14 +11,13 @@ from controllers.artist import (
     update_artist as controller_patch_artist,
     list_artists as controller_get_artists,
     list_albums_by_artist as controller_list_albums_by_artist,
-    delete_artist as controller_delete_artist
+    delete_artist as controller_delete_artist,
 )
 
-from utils.auth_dependency import validate_user
+from utils.auth_dependency import validate_user, validate_admin
 from utils.mongodb import get_collection
 
 router = APIRouter(prefix="/artists", tags=["Artists"])
-
 
 # Crear artista (requiere autenticación)
 @router.post("/", summary="Create new artist")
@@ -26,31 +25,26 @@ router = APIRouter(prefix="/artists", tags=["Artists"])
 async def create_artist(artist: ArtistCreate, request: Request):
     return await controller_create_artist(artist, request)
 
-
 # Obtener todos los artistas (público)
 @router.get("/", summary="List all artists", response_model=List[ArtistOut])
 async def get_artists():
     return await controller_get_artists()
 
-
-# Actualizar artista por ID (requiere autenticación)
-@router.patch("/{artist_id}", summary="Update artist")
-@validate_user
-async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
-    return await controller_patch_artist(artist_id, artist, request)
-
+# Ruta estática primero para evitar conflictos con /{artist_id}/albums
+@router.get("/statistics/top", summary="Obtener artista con más álbumes")
+async def get_top_artist_by_albums():
+    return await controller_get_album_statistics()
 
 # Obtener álbumes de un artista por ID (público)
 @router.get("/{artist_id}/albums", summary="Obtener álbumes de un artista por su ID")
 async def get_albums_by_artist(artist_id: str):
     return await controller_list_albums_by_artist(artist_id)
 
-
-# Obtener artista con más álbumes (público)
-@router.get("/statistics/top", summary="Obtener artista con más álbumes")
-async def get_top_artist_by_albums():
-    return await controller_get_album_statistics()
-
+# Actualizar artista por ID (requiere autenticación)
+@router.patch("/{artist_id}", summary="Update artist")
+@validate_user
+async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
+    return await controller_patch_artist(artist_id, artist, request)
 
 # Asignar múltiples géneros a un artista (requiere autenticación)
 @router.patch("/{artist_id}/assign-genres", summary="Assign multiple genres to artist")
@@ -73,18 +67,17 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment, 
 
     artist_coll.update_one(
         {"_id": ObjectId(artist_id)},
-        {"$set": {"genre": payload.genre_ids}}
+        {"$set": {"genre": payload.genre_ids}},
     )
 
     return {
         "msg": "Genres assigned to artist successfully",
         "artist_id": artist_id,
-        "genre_ids": payload.genre_ids
+        "genre_ids": payload.genre_ids,
     }
 
-
-# Eliminar artista por ID (requiere autenticación)
+# Eliminar artista por ID (requiere administrador)
 @router.delete("/{artist_id}", summary="Delete artist by ID")
-@validate_user
+@validate_admin
 async def delete_artist(artist_id: str, request: Request):
     return await controller_delete_artist(artist_id, request)

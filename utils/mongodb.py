@@ -41,7 +41,7 @@ def get_collection(name: str):
     client = get_mongo_client()
     return client[DB_NAME][name]
 
-def t_connection() -> bool:
+def test_connection() -> bool:
     """
     Verifica si la conexión a MongoDB funciona correctamente.
     Usado en el endpoint /ready.
