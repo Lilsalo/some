@@ -1,0 +1,16 @@
+name: deploy to Railway
+
+on:
+    push:
+        branches: [main]
+              
+jobs:
+  helloworld:
+      runs-on: ubuntu-latest
+
+      steps:
+      -uses: actions/checkout@v4
+      
+      -name: imprimir en consola
+       run:
+           echo"hello world, GITHUB ACTIONS"
