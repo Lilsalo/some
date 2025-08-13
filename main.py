@@ -22,7 +22,7 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],      # restringe en producción según necesites
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -104,3 +104,14 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+# Arranque local/producción (usa $PORT si existe; 8000 por defecto)
+if __name__ == "__main__":
+    import os
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8000)),
+        log_level="info",
+    )
