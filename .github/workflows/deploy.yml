@@ -12,5 +12,4 @@ jobs:
       -uses: actions/checkout@v4
       
       -name: imprimir en consola
-       run:
-           echo"hello world, GITHUB ACTIONS"
+       run: echo"hello world, GITHUB ACTIONS"
