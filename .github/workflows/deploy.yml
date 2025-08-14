@@ -27,6 +27,7 @@ jobs:
 
       - name: Install libraries
         run: |
+          cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
@@ -84,6 +85,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "starting deployment..."
+          cd backend
           railway up --service "ecos-api" || \
           railway up --service ecos-api || \
           railway up --service web || \
