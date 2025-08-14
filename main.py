@@ -1,3 +1,5 @@
+import uvicorn
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
@@ -105,13 +107,7 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# Arranque local/producción (usa $PORT si existe; 8000 por defecto)
 if __name__ == "__main__":
-    import os
-    import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8000)),
-        log_level="info",
-    )
+    import os, uvicorn
+    port = int(os.getenv("PORT", "8000"))  # local usa 8000, Railway usa $PORT
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
