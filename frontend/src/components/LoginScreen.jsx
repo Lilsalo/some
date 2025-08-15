@@ -1,7 +1,33 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const LoginScreen = () => {
+
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [ loading, setLoading ] = useState(false);
+    const { login } = useAuth();
+    const  navidate = useNavigate();
+
+    const handleSubmit =async (e) => {
+      e.preventDefault()
+      setLoading(true);
+      
+      try{
+           await login ( email, password);
+           navidate()
+
+      }catch(error){
+        console.error("error", error);
+        alert ('error al inciar sesion: ${ error.message} ');
+      }finally{
+        setLoading(false)
+      }
+ 
+
+    }
+
   return (
     <div className="min-h-screen bg-pink-50 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
@@ -16,7 +42,7 @@ const LoginScreen = () => {
         </div>
 
         {/* Formulario */}
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -27,6 +53,8 @@ const LoginScreen = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="tu@email.com"
+              value={email}
+              onChange={ (e) =>setEmail(e.target.value)}
             />
           </div>
 
@@ -40,14 +68,17 @@ const LoginScreen = () => {
               required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="********"
+              value={password}
+              onChange={ (e) =>setPassword(e.target.value)}
             />
           </div>
 
           <button
             type="submit"
             className="w-full bg-pink-500 text-white py-2 px-4 rounded-md hover:bg-pink-600 font-medium disabled:opacity-50"
+            disabled={loading}
           >
-            Iniciar Sesión
+            {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
           </button>
         </form>
 

@@ -1,4 +1,15 @@
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen bg-green-50">
       {/* Header Principal */}
@@ -10,10 +21,14 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold text-gray-800">
                 ¡Bienvenido a ecos! 🎧
               </h1>
-              <p className="text-gray-600">Hola Salomé</p>
+              {/*  Curly braces correctas para interpolar */}
+              <p className="text-gray-600">
+                Hola {user?.firstname} {user?.lastname}
+              </p>
             </div>
             <button
               className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors"
+              onClick={handleLogout}
             >
               Cerrar Sesión
             </button>
@@ -27,13 +42,13 @@ const Dashboard = () => {
           <li>
             <button className="flex items-center px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors font-medium">
               <span className="mr-2">🎤</span>
-              Tipos
+              Géneros
             </button>
           </li>
           <li>
             <button className="flex items-center px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors font-medium">
               <span className="mr-2">🎹</span>
-              Productos
+              Artistas
             </button>
           </li>
         </ul>
