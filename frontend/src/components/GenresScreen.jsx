@@ -24,7 +24,7 @@ const GenresScreen = () => {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await genreService.create({ name });
+      await genreService.create({ "name": name });
       setName('');
       await load();
     } catch (e) {
