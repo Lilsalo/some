@@ -52,7 +52,7 @@ const ArtistScreen = () => {
 
   const handleEdit = (artist) => {
     setEditingId(artist.id);
-    setForm({ name: artist.name, country: artist.country, genre: artist.genre });
+    setForm({ name: artist.name, country: artist.country, genre: artist.genre_ids });
   };
 
   const handleDelete = async (id) => {
@@ -64,6 +64,14 @@ const ArtistScreen = () => {
       console.error('Error deleting artist', err);
     }
   };
+
+  const genreMap = Object.fromEntries(genres.map((g) => [g.id, g.name]));
+
+  const getGenreNames = (artist) =>
+    (artist.genre_ids || [])
+      .map((id) => genreMap[id])
+      .filter(Boolean)
+      .join(', ');
 
   return (
     <div className="p-4">
@@ -95,11 +103,11 @@ const ArtistScreen = () => {
           onChange={handleChange}
           className="border p-2 w-full"
         >
-          {genres.map((g) => (
-            <option key={g.id} value={g.name}>
-              {g.name}
-            </option>
-          ))}
+            {genres.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
         </select>
         <button
           type="submit"
@@ -123,7 +131,7 @@ const ArtistScreen = () => {
             <tr key={a.id} className="text-center">
               <td className="border p-2">{a.name}</td>
               <td className="border p-2">{a.country}</td>
-              <td className="border p-2">{Array.isArray(a.genre) ? a.genre.join(', ') : ''}</td>
+              <td className="border p-2">{getGenreNames(a)}</td>
               <td className="border p-2 space-x-2">
                 <button
                   onClick={() => handleEdit(a)}

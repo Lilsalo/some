@@ -34,10 +34,14 @@ async def create_artist(artist: ArtistCreate, request: Request):
         genre_coll = get_collection("genre")
 
         genre_ids = []
-        for genre_name in artist.genre:
-            genre_doc = genre_coll.find_one({"name": genre_name})
+        for genre_id in artist.genre:
+            if not ObjectId.is_valid(genre_id):
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid genre ID '{genre_id}'"
+                )
+            genre_doc = genre_coll.find_one({"_id": ObjectId(genre_id)})
             if not genre_doc:
-                raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+                raise HTTPException(status_code=404, detail=f"Genre '{genre_id}' not found")
             genre_ids.append(genre_doc["_id"])
 
         if artist_coll.find_one({"name": artist.name}):
@@ -68,9 +72,15 @@ async def list_artists():
         for artist in results:
             artist["id"] = str(artist.pop("_id"))
             artist["albums"] = [str(aid) for aid in artist.get("albums", [])]
-            artist["genre"] = artist.get("genres", [])  # Ya es lista de strings desde pipeline
-            if isinstance(artist["genre"], list) and len(artist["genre"]) > 0 and isinstance(artist["genre"][0], dict):
-                artist["genre"] = [g.get("name", "") for g in artist["genre"]]
+
+            raw_genres = artist.pop("genre", [])
+            if isinstance(raw_genres, list):
+                artist["genre_ids"] = [str(gid) for gid in raw_genres]
+            elif raw_genres:
+                # handle legacy data where genre was stored as a single string
+                artist["genre_ids"] = [str(raw_genres)]
+            else:
+                artist["genre_ids"] = []
 
             artist.pop("genres", None)
 
@@ -99,20 +109,26 @@ async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
 
         if "genre" in update_data:
             new_genre_ids = []
-            for genre_name in update_data["genre"]:
-                genre_doc = genre_coll.find_one({"name": genre_name})
+            for genre_id in update_data["genre"]:
+                if not ObjectId.is_valid(genre_id):
+                    raise HTTPException(
+                        status_code=400, detail=f"Invalid genre ID '{genre_id}'"
+                    )
+                genre_doc = genre_coll.find_one({"_id": ObjectId(genre_id)})
                 if not genre_doc:
-                    raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+                    raise HTTPException(status_code=404, detail=f"Genre '{genre_id}' not found")
                 new_genre_ids.append(genre_doc["_id"])
             update_data["genre"] = new_genre_ids
 
         artist_coll.update_one({"_id": ObjectId(artist_id)}, {"$set": update_data})
 
         updated_artist = artist_coll.find_one({"_id": ObjectId(artist_id)})
+        artist_clean = convert_object_ids(updated_artist)
+        artist_clean["genre_ids"] = artist_clean.pop("genre", [])
 
         return {
             "msg": "Artist updated successfully",
-            "artist": convert_object_ids(updated_artist)
+            "artist": artist_clean,
         }
 
     except Exception:
@@ -125,7 +141,6 @@ async def list_albums_by_artist(artist_id: str):
     try:
         artist_coll = get_collection("artist")
         album_coll = get_collection("album")
-        genre_coll = get_collection("genre")
 
         if not ObjectId.is_valid(artist_id):
             raise HTTPException(status_code=400, detail="Invalid artist ID")
@@ -135,15 +150,7 @@ async def list_albums_by_artist(artist_id: str):
             raise HTTPException(status_code=404, detail="Artist not found")
 
         artist_clean = convert_object_ids(artist)
-
-        genre_names = []
-        for genre_id in artist.get("genre", []):
-            if ObjectId.is_valid(genre_id):
-                genre = genre_coll.find_one({"_id": ObjectId(genre_id)})
-                if genre:
-                    genre_names.append(genre["name"])
-
-        artist_clean["genre"] = genre_names
+        artist_clean["genre_ids"] = artist_clean.pop("genre", [])
 
         albums = list(album_coll.find({"artist": artist_id}))
         cleaned_albums = [convert_object_ids(alb) for alb in albums]

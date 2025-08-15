@@ -4,9 +4,15 @@ from typing import Optional, List
 
 class ArtistCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Name of the artist")
-    genre: List[str] = Field(..., description="List of genre names associated with the artist")
-    country: str = Field(..., min_length=2, max_length=100, description="Country of origin")
-    albums: Optional[List[str]] = Field(default_factory=list, description="List of album IDs for this artist")
+    genre: List[str] = Field(
+        ..., description="List of genre IDs associated with the artist"
+    )
+    country: str = Field(
+        ..., min_length=2, max_length=100, description="Country of origin"
+    )
+    albums: Optional[List[str]] = Field(
+        default_factory=list, description="List of album IDs for this artist"
+    )
 
     @validator("name")
     def name_must_be_alpha(cls, v):
@@ -23,7 +29,7 @@ class ArtistCreate(BaseModel):
 
 class ArtistUpdate(BaseModel):
     name: Optional[str] = None
-    genre: Optional[List[str]] = None  # nombres de género
+    genre: Optional[List[str]] = None  # genre IDs
     country: Optional[str] = None
     albums: Optional[List[str]] = None
 
@@ -34,10 +40,10 @@ class ArtistResponse(BaseModel):
     id: str
 
 
-# Modelo de salida ya enriquecido con nombres de géneros (para list_artists y detalles)
+# Modelo de salida para artistas
 class ArtistOut(BaseModel):
     id: str
     name: str
-    genre: List[str]  # género por nombre, gracias al lookup
+    genre_ids: List[str] = []
     country: str
     albums: List[str] = []
