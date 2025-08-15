@@ -7,12 +7,12 @@ const authHeaders = () => {
 };
 
 const getAll = async () => {
-  const res = await fetch(`${API_BASE_URL}/genres`);
+  const res = await fetch(`${API_BASE_URL}/genres?include_inactive=true`);
   return handleResponse(res);
 };
 
 const create = async (genre) => {
-  const res = await fetch(`${API_BASE_URL}/genres`, {
+  const res = await fetch(`${API_BASE_URL}/genres/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(genre),
