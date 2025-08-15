@@ -37,7 +37,7 @@ const Dashboard = () => {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="py-4">
+        <nav className="py-4">
           <ul className="flex space-x-8">
             <li>
               <button
@@ -49,13 +49,16 @@ const Dashboard = () => {
               </button>
             </li>
             <li>
-              <button className="flex items-center px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors font-medium">
+              <button
+                className="flex items-center px-4 py-2 text-gray-700 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors font-medium"
+                onClick={() => navigate('/artists')}
+              >
                 <span className="mr-2">🎹</span>
                 Artistas
               </button>
             </li>
           </ul>
-      </nav>
+        </nav>
 
       {/* Contenido Principal */}
       <div className="max-w-6xl mx-auto px-4 py-8">

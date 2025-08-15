@@ -8,7 +8,7 @@ from models.genre import GenreListAssignment
 from controllers.album import get_album_statistics as controller_get_album_statistics
 from controllers.artist import (
     create_artist as controller_create_artist,
-    update_artist as controller_patch_artist,
+    update_artist as controller_update_artist,
     list_artists as controller_get_artists,
     list_albums_by_artist as controller_list_albums_by_artist,
     delete_artist as controller_delete_artist,
@@ -41,10 +41,10 @@ async def get_albums_by_artist(artist_id: str):
     return await controller_list_albums_by_artist(artist_id)
 
 # Actualizar artista por ID (requiere autenticación)
-@router.patch("/{artist_id}", summary="Update artist")
+@router.put("/{artist_id}", summary="Update artist")
 @validate_user
 async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
-    return await controller_patch_artist(artist_id, artist, request)
+    return await controller_update_artist(artist_id, artist, request)
 
 # Asignar múltiples géneros a un artista (requiere autenticación)
 @router.patch("/{artist_id}/assign-genres", summary="Assign multiple genres to artist")
@@ -78,6 +78,6 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment, 
 
 # Eliminar artista por ID (requiere administrador)
 @router.delete("/{artist_id}", summary="Delete artist by ID")
-@validate_admin
+@validate_user
 async def delete_artist(artist_id: str, request: Request):
     return await controller_delete_artist(artist_id, request)
