@@ -78,6 +78,6 @@ async def assign_genres_to_artist(artist_id: str, payload: GenreListAssignment, 
 
 # Eliminar artista por ID (requiere administrador)
 @router.delete("/{artist_id}", summary="Delete artist by ID")
-@validate_admin
+@validate_user
 async def delete_artist(artist_id: str, request: Request):
     return await controller_delete_artist(artist_id, request)
