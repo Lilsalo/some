@@ -123,9 +123,11 @@ async def delete_genre(genre_id: str, request: Request):
     if not g:
         raise HTTPException(status_code=404, detail="Genre not found")
 
-    # Verificar USO por el modelo principal (ARTISTA)
-    # Nota: si 'genre' es un array en artist, {genre: _id} funciona como multikey.
-    in_use_by_artist = artist_coll.find_one({"genre": _id}, projection={"_id": 1})
+    # Verificar uso por artistas; se consideran posibles campos "genre" o "genre_ids"
+    in_use_by_artist = artist_coll.find_one(
+        {"$or": [{"genre": _id}, {"genre_ids": _id}]},
+        projection={"_id": 1},
+    )
 
     # (Opcional) si también usas genre en songs/albums, puedes activar estos:
     # in_use_by_song = song_coll.find_one({"$or": [{"genre": _id}, {"genre_id": _id}]}, {"_id": 1})
