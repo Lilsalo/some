@@ -72,7 +72,15 @@ async def list_artists():
         for artist in results:
             artist["id"] = str(artist.pop("_id"))
             artist["albums"] = [str(aid) for aid in artist.get("albums", [])]
-            artist["genre_ids"] = [str(gid) for gid in artist.get("genre", [])]
+            raw_genres = artist.get("genre", [])
+            if isinstance(raw_genres, list):
+                artist["genre_ids"] = [str(gid) for gid in raw_genres]
+            elif raw_genres:
+                # handle legacy data where genre was stored as a single string
+                artist["genre_ids"] = [str(raw_genres)]
+            else:
+                artist["genre_ids"] = []
+
             artist["genre"] = artist.get("genres", [])  # list of genre docs
             if (
                 isinstance(artist["genre"], list)
