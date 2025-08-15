@@ -41,7 +41,7 @@ const deleteArtist = async (id) => {
 };
 
 const getGenres = async () => {
-  const response = await fetch(`${API_BASE_URL}/genres`);
+  const response = await fetch(`${API_BASE_URL}/genres?include_inactive=true`);
   return handleResponse(response);
 };
 
