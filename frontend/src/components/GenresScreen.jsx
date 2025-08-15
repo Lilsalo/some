@@ -54,7 +54,11 @@ const GenresScreen = () => {
       await genreService.remove(id);
       await load();
     } catch (e) {
-      setError(e.message);
+      if (e.message.includes('assigned to one or more artists')) {
+        setError('No se puede eliminar el género porque está asignado a uno o más artistas.');
+      } else {
+        setError(e.message);
+      }
     }
   };
 

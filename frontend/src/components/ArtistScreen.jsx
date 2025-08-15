@@ -92,19 +92,22 @@ const ArtistScreen = () => {
           className="border p-2 w-full"
           required
         />
-        <select
-          multiple
-          name="genre"
-          value={form.genre}
-          onChange={handleChange}
-          className="border p-2 w-full"
-        >
+        <label className="block">
+          <span className="mb-1 block">Géneros</span>
+          <select
+            multiple
+            name="genre"
+            value={form.genre}
+            onChange={handleChange}
+            className="border p-2 w-full"
+          >
             {genres.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
             ))}
-        </select>
+          </select>
+        </label>
         <button
           type="submit"
           className="bg-green-500 text-white px-4 py-2 rounded"

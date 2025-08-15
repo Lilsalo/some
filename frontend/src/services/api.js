@@ -5,7 +5,11 @@ const API_BASE_URL = 'https://ecos-api-production.up.railway.app';
 const handleResponse = async (response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
+    const message =
+      errorData.message ||
+      errorData.detail ||
+      `Error ${response.status}: ${response.statusText}`;
+    throw new Error(message);
   }
   return response.json();
 };
