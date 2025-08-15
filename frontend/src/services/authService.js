@@ -40,7 +40,9 @@ export const authService = {
       try {
         const err = await response.json();
         if (err?.detail || err?.message) message = err.detail || err.message;
-      } catch {}
+      } catch {
+        // ignore JSON parse errors
+      }
       if (response.status === 401) {
         throw new Error("Credenciales inválidas. Verifica tu email y contraseña.");
       }

@@ -1,9 +1,5 @@
-import {
-    createContext,
-    useContext,
-    useState,
-    useEffect
-} from "react";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect } from "react";
 
 import { authService } from "../services";
 
@@ -38,8 +34,8 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
+        setLoading(true);
         try {
-            setLoading(true);
             await authService.login(email, password);
             const currentUser = authService.getCurrentUser();
             if (currentUser) {
@@ -47,20 +43,16 @@ export const AuthProvider = ({ children }) => {
                 setIsAuthenticated(true);
             }
             return true;
-        } catch (error) {
-            throw error;
         } finally {
             setLoading(false);
         }
     };
 
     const register = async (name, lastname, email, password) => {
+        setLoading(true);
         try {
-            setLoading(true);
             const result = await authService.register(name, lastname, email, password);
             return result;
-        } catch (error) {
-            throw error;
         } finally {
             setLoading(false);
         }

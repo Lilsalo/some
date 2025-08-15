@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import SignupScreen from './components/SignupScreen';
 import ArtistScreen from './components/ArtistScreen';
+import GenresScreen from './components/GenresScreen';
 
 function App() {
   return (
@@ -45,6 +46,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ArtistScreen />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/genres"
+              element={
+                <ProtectedRoute>
+                  <GenresScreen />
                 </ProtectedRoute>
               }
             />
