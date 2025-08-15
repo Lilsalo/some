@@ -65,6 +65,14 @@ const ArtistScreen = () => {
     }
   };
 
+  const genreMap = Object.fromEntries(genres.map((g) => [g.id, g.name]));
+
+  const getGenreNames = (artist) =>
+    (artist.genre_ids || [])
+      .map((id) => genreMap[id])
+      .filter(Boolean)
+      .join(', ');
+
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">Gestión de Artistas</h2>
@@ -123,7 +131,7 @@ const ArtistScreen = () => {
             <tr key={a.id} className="text-center">
               <td className="border p-2">{a.name}</td>
               <td className="border p-2">{a.country}</td>
-              <td className="border p-2">{Array.isArray(a.genre) ? a.genre.join(', ') : ''}</td>
+              <td className="border p-2">{getGenreNames(a)}</td>
               <td className="border p-2 space-x-2">
                 <button
                   onClick={() => handleEdit(a)}

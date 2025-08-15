@@ -40,11 +40,10 @@ class ArtistResponse(BaseModel):
     id: str
 
 
-# Modelo de salida ya enriquecido con nombres de géneros (para list_artists y detalles)
+# Modelo de salida para artistas
 class ArtistOut(BaseModel):
     id: str
     name: str
-    genre: List[str]  # genre names returned by the lookup
     genre_ids: List[str] = []
     country: str
     albums: List[str] = []
