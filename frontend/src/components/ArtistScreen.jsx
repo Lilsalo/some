@@ -52,7 +52,7 @@ const ArtistScreen = () => {
 
   const handleEdit = (artist) => {
     setEditingId(artist.id);
-    setForm({ name: artist.name, country: artist.country, genre: artist.genre });
+    setForm({ name: artist.name, country: artist.country, genre: artist.genre_ids });
   };
 
   const handleDelete = async (id) => {
@@ -95,11 +95,11 @@ const ArtistScreen = () => {
           onChange={handleChange}
           className="border p-2 w-full"
         >
-          {genres.map((g) => (
-            <option key={g.id} value={g.name}>
-              {g.name}
-            </option>
-          ))}
+            {genres.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
         </select>
         <button
           type="submit"

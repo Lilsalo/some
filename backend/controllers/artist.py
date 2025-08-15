@@ -34,10 +34,14 @@ async def create_artist(artist: ArtistCreate, request: Request):
         genre_coll = get_collection("genre")
 
         genre_ids = []
-        for genre_name in artist.genre:
-            genre_doc = genre_coll.find_one({"name": genre_name})
+        for genre_id in artist.genre:
+            if not ObjectId.is_valid(genre_id):
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid genre ID '{genre_id}'"
+                )
+            genre_doc = genre_coll.find_one({"_id": ObjectId(genre_id)})
             if not genre_doc:
-                raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+                raise HTTPException(status_code=404, detail=f"Genre '{genre_id}' not found")
             genre_ids.append(genre_doc["_id"])
 
         if artist_coll.find_one({"name": artist.name}):
@@ -68,8 +72,13 @@ async def list_artists():
         for artist in results:
             artist["id"] = str(artist.pop("_id"))
             artist["albums"] = [str(aid) for aid in artist.get("albums", [])]
-            artist["genre"] = artist.get("genres", [])  # Ya es lista de strings desde pipeline
-            if isinstance(artist["genre"], list) and len(artist["genre"]) > 0 and isinstance(artist["genre"][0], dict):
+            artist["genre_ids"] = [str(gid) for gid in artist.get("genre", [])]
+            artist["genre"] = artist.get("genres", [])  # list of genre docs
+            if (
+                isinstance(artist["genre"], list)
+                and len(artist["genre"]) > 0
+                and isinstance(artist["genre"][0], dict)
+            ):
                 artist["genre"] = [g.get("name", "") for g in artist["genre"]]
 
             artist.pop("genres", None)
@@ -99,10 +108,14 @@ async def update_artist(artist_id: str, artist: ArtistUpdate, request: Request):
 
         if "genre" in update_data:
             new_genre_ids = []
-            for genre_name in update_data["genre"]:
-                genre_doc = genre_coll.find_one({"name": genre_name})
+            for genre_id in update_data["genre"]:
+                if not ObjectId.is_valid(genre_id):
+                    raise HTTPException(
+                        status_code=400, detail=f"Invalid genre ID '{genre_id}'"
+                    )
+                genre_doc = genre_coll.find_one({"_id": ObjectId(genre_id)})
                 if not genre_doc:
-                    raise HTTPException(status_code=404, detail=f"Género '{genre_name}' no encontrado")
+                    raise HTTPException(status_code=404, detail=f"Genre '{genre_id}' not found")
                 new_genre_ids.append(genre_doc["_id"])
             update_data["genre"] = new_genre_ids
 
