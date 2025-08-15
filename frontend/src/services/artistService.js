@@ -7,7 +7,7 @@ const getArtists = async () => {
 };
 
 const createArtist = async (artist) => {
-  const response = await fetch(`${API_BASE_URL}/artists`, {
+  const response = await fetch(`${API_BASE_URL}/artists/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
