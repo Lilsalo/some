@@ -65,13 +65,9 @@ const ArtistScreen = () => {
     }
   };
 
-  const genreMap = Object.fromEntries(genres.map((g) => [g.id, g.name]));
-
+  // Show genre_ids directly as a comma-separated string
   const getGenreNames = (artist) =>
-    (artist.genre_ids || [])
-      .map((id) => genreMap[id])
-      .filter(Boolean)
-      .join(', ');
+    (artist.genre_ids || []).join(', ');
 
   return (
     <div className="p-4">
